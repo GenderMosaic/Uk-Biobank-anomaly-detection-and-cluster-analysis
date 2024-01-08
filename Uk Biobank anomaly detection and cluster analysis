@@ -1,0 +1,846 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "0663791c",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#import packages:\n",
+    "\n",
+    "import numpy as np\n",
+    "import pandas as pd\n",
+    "import random\n",
+    "from random import sample\n",
+    "import os\n",
+    "import cv2\n",
+    "import math \n",
+    "\n",
+    "#statistical methods \n",
+    "from sklearn.decomposition import PCA\n",
+    "from sklearn import preprocessing\n",
+    "from sklearn.preprocessing import StandardScaler\n",
+    "from sklearn.cluster import KMeans\n",
+    "from sklearn.cluster import AgglomerativeClustering \n",
+    "from sklearn.neighbors import NearestNeighbors\n",
+    "from sklearn.model_selection import train_test_split\n",
+    "\n",
+    "#plots\n",
+    "import matplotlib.pyplot as plt\n",
+    "import matplotlib\n",
+    "import seaborn as sns"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "b94bed41",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_residuals_data = pd.read_csv(\".../df_brains_res.csv\")\n",
+    "\n",
+    "df_original_data = pd.read_csv(\".../df_brains_original.csv\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "41f73da0",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_residuals_data = df_residuals_data.dropna()\n",
+    "df_original_data = df_original_data.dropna()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "d229cef1",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "np.all(df_residuals_data.eid == df_original_data.eid)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "dc5d62a7",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "random.seed(41)\n",
+    "number_of_males = sum(df_original_data.sex==1)\n",
+    "females_index = sample(np.where(df_original_data.sex==0)[0].tolist(),number_of_males)\n",
+    "males_index = np.where(df_original_data.sex==1)[0].tolist()\n",
+    "ind =  males_index + females_index "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "fb03b748",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "number_of_males"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "3bc11926",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "np.unique(ind).shape"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "f7968052",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "number_of_females=number_of_males"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "890ebb4a",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_residuals_data_balanced = df_residuals_data.iloc[ind,2:]\n",
+    "df_original_data_balanced = df_original_data.iloc[ind,2:]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "f70c7037",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "scaler = StandardScaler()\n",
+    "df_residuals_data_balanced_norm = scaler.fit_transform(df_residuals_data_balanced)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "be08fbd4",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_residuals_data_balanced_norm.shape"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "163f7970",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "scaler = StandardScaler()\n",
+    "df_original_data_balanced_norm = scaler.fit_transform(df_original_data_balanced)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "3fd4ef6a",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_original_data_balanced_norm.shape"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "bb15b52c",
+   "metadata": {},
+   "source": [
+    "<font size=\"5\">Dimension reduction using PCA<font>"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "94a90024",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "pca = PCA(svd_solver='full')\n",
+    "pca.fit(df_residuals_data_balanced_norm)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "95a67a72",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "plt.figure(figsize=(10,5))\n",
+    "PC_values = (np.arange(pca.n_components_) + 1)[:50]\n",
+    "plt.plot(PC_values[:50], pca.explained_variance_ratio_[:50], 'ro-', linewidth=2)\n",
+    "plt.title('Scree Plot')\n",
+    "plt.xlabel('Principal Component')\n",
+    "plt.ylabel('Proportion of Variance Explained')\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "4edf75d9",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#create a plot to choose the number of dimensions \n",
+    "plt.figure(figsize=(10,5))\n",
+    "PC_values = (np.arange(pca.n_components_) + 1)[:50]\n",
+    "plt.plot(PC_values[:50], np.cumsum(pca.explained_variance_ratio_)[:50], 'ro-', linewidth=2)\n",
+    "plt.title('Scree Plot')\n",
+    "plt.xlabel('Principal Component')\n",
+    "plt.ylabel('Cumulative Proportion of Variance Explained')\n",
+    "plt.axhline(y = 0.4, color = 'black', linestyle = ':')\n",
+    "plt.axhline(y = 0.5, color = 'black', linestyle = ':')\n",
+    "plt.axhline(y = 0.6, color = 'black', linestyle = ':')\n",
+    "plt.axhline(y = 0.7, color = 'black', linestyle = ':')\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "27409ba9",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "sum(pca.explained_variance_ratio_[:3]) #explained variance ratio of the first 3 pcs"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "d617b89a",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "sum(pca.explained_variance_ratio_[:12]) #explained variance ratio of the first 12 pcs"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "16042bef",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "pca = PCA(svd_solver='full')\n",
+    "pca.fit(df_original_data_balanced_norm)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "7fbd25b4",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "plt.figure(figsize=(10,5))\n",
+    "PC_values = (np.arange(pca.n_components_) + 1)[:50]\n",
+    "plt.plot(PC_values[:50], pca.explained_variance_ratio_[:50], 'ro-', linewidth=2)\n",
+    "plt.title('Scree Plot')\n",
+    "plt.xlabel('Principal Component')\n",
+    "plt.ylabel('Proportion of Variance Explained')\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "eb23cd63",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#create a plot to choose the number of dimensions \n",
+    "plt.figure(figsize=(10,5))\n",
+    "PC_values = (np.arange(pca.n_components_) + 1)[:50]\n",
+    "plt.plot(PC_values[:50], np.cumsum(pca.explained_variance_ratio_)[:50], 'ro-', linewidth=2)\n",
+    "plt.title('Scree Plot')\n",
+    "plt.xlabel('Principal Component')\n",
+    "plt.ylabel('Cumulative Proportion of Variance Explained')\n",
+    "plt.axhline(y = 0.4, color = 'black', linestyle = ':')\n",
+    "plt.axhline(y = 0.5, color = 'black', linestyle = ':')\n",
+    "plt.axhline(y = 0.6, color = 'black', linestyle = ':')\n",
+    "plt.axhline(y = 0.7, color = 'black', linestyle = ':')\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "3032755e",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "sum(pca.explained_variance_ratio_[:3]) #explained variance ratio of the first 3 pcs"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "e942f852",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "sum(pca.explained_variance_ratio_[:9]) #explained variance ratio of the first 9 pcs"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "03a15b8a",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#performing pca using 3 components + scaling\n",
+    "pca = PCA(n_components = 3,svd_solver='full')\n",
+    "pca.fit(df_residuals_data_balanced_norm)\n",
+    "images_reduced_brains_res_not_std_3 = pca.transform(df_residuals_data_balanced_norm)\n",
+    "scaler = StandardScaler()\n",
+    "images_reduced_brains_res_3 = scaler.fit_transform(images_reduced_brains_res_not_std_3)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "c80f9591",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "images_reduced_brains_res_3.shape"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "3d99fae0",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "images_reduced_brains_res_not_std_3.shape"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "dd1944a4",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#performing pca using 12 components + scaling\n",
+    "pca = PCA(n_components = 12,svd_solver='full')\n",
+    "pca.fit(df_residuals_data_balanced_norm)\n",
+    "images_reduced_brains_res_not_std_12 = pca.transform(df_residuals_data_balanced_norm)\n",
+    "scaler = StandardScaler()\n",
+    "images_reduced_brains_res_12 = scaler.fit_transform(images_reduced_brains_res_not_std_12)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "72801034",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "images_reduced_brains_res_12.shape"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "18a1247f",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#performing pca using 3 components + scaling\n",
+    "pca = PCA(n_components = 3,svd_solver='full')\n",
+    "pca.fit(df_original_data_balanced_norm)\n",
+    "images_reduced_brains_original_not_std_3 = pca.transform(df_original_data_balanced_norm)\n",
+    "scaler = StandardScaler()\n",
+    "images_reduced_brains_original_3 = scaler.fit_transform(images_reduced_brains_original_not_std_3)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "d9a1160b",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#performing pca using 9 components + scaling\n",
+    "pca = PCA(n_components = 9,svd_solver='full')\n",
+    "pca.fit(df_original_data_balanced_norm)\n",
+    "images_reduced_brains_original_not_std_9 = pca.transform(df_original_data_balanced_norm)\n",
+    "scaler = StandardScaler()\n",
+    "images_reduced_brains_original_9 = scaler.fit_transform(images_reduced_brains_original_not_std_9)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "99122e5a",
+   "metadata": {},
+   "source": [
+    "<font size=\"5\">Using K-means and Hierarchical clustering methods - 2 clusters:</font>"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "6cabde79",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "ratio_of_females_in_the_largest_cluster = []\n",
+    "ratio_of_males_in_the_largest_cluster = []\n",
+    "clustering_method = []\n",
+    "dim_reduction_method = []\n",
+    "\n",
+    "\n",
+    "def clustering_2(df,number_of_females,method):\n",
+    "    kmeans = KMeans(n_clusters = 2, random_state = 0, n_init=100, init='random')\n",
+    "    kmeans.fit(df)\n",
+    "    km_largest_cluster = pd.Series([sum(kmeans.labels_==0),sum(kmeans.labels_==1)]).idxmax()\n",
+    "    ratio_of_females_in_the_largest_cluster.append(sum([kmeans.labels_[number_of_females:]==km_largest_cluster][0])/number_of_females)\n",
+    "    ratio_of_males_in_the_largest_cluster.append(sum([kmeans.labels_[:number_of_females]==km_largest_cluster][0])/number_of_females)\n",
+    "    clustering_method.append(\"K-means\")\n",
+    "    dim_reduction_method.append(method)\n",
+    "    hierarchical_cluster = AgglomerativeClustering(n_clusters=2, metric='euclidean', linkage='ward')\n",
+    "    labels_hierarchical_cluster = hierarchical_cluster.fit_predict(df)\n",
+    "    h_largest_cluster = pd.Series([sum(labels_hierarchical_cluster==0),sum(labels_hierarchical_cluster==1)]).idxmax()\n",
+    "    ratio_of_females_in_the_largest_cluster.append(sum([labels_hierarchical_cluster[number_of_females:]==h_largest_cluster][0])/number_of_females)\n",
+    "    ratio_of_males_in_the_largest_cluster.append(sum([labels_hierarchical_cluster[:number_of_females]==h_largest_cluster][0])/number_of_females)\n",
+    "    clustering_method.append(\"Hierarchical\")\n",
+    "    dim_reduction_method.append(method)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "12e547a7",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "clustering_2(images_reduced_brains_original_3,number_of_females,\"Original Values PCA - 3\")\n",
+    "\n",
+    "clustering_2(images_reduced_brains_original_9,number_of_females,\"Original Values PCA - 9\")\n",
+    "\n",
+    "clustering_2(df_original_data_balanced_norm,number_of_females,\"Original Values\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "a046972f",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "plot = sns.scatterplot(y=ratio_of_males_in_the_largest_cluster,x=ratio_of_females_in_the_largest_cluster,\n",
+    "                       hue=dim_reduction_method,\n",
+    "                        style=clustering_method, markers=[\"d\",\"s\"],s=50)\n",
+    "plot.set(xlabel='Ratio of females in the large cluster', ylabel='Ratio of males in the large cluster')\n",
+    "plt.axis('square')\n",
+    "plt.ylim(0, 1)\n",
+    "plt.xlim(0, 1)\n",
+    "plt.plot([0, 1], [0, 1],color='black', linewidth=0.5)\n",
+    "legend = plot.legend(bbox_to_anchor= (1,1))\n",
+    "plt.savefig('.../2 clusters - original data- brains.png',dpi=300, bbox_inches='tight')\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "2a674af7",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "ratio_of_females_in_the_largest_cluster = []\n",
+    "ratio_of_males_in_the_largest_cluster = []\n",
+    "clustering_method = []\n",
+    "dim_reduction_method = []\n",
+    "\n",
+    "clustering_2(images_reduced_brains_res_3,number_of_females,\"Residuals PCA - 3\")\n",
+    "\n",
+    "clustering_2(images_reduced_brains_res_12,number_of_females,\"Residuals PCA - 12\")\n",
+    "\n",
+    "clustering_2(df_residuals_data_balanced_norm,number_of_females,\"Residuals\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "1a31b389",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "plot = sns.scatterplot(y=ratio_of_males_in_the_largest_cluster,x=ratio_of_females_in_the_largest_cluster,\n",
+    "                       hue=dim_reduction_method,\n",
+    "                        style=clustering_method, markers=[\"d\",\"s\"],s=50)\n",
+    "plot.set(xlabel='Ratio of females in the large cluster', ylabel='Ratio of males in the large cluster')\n",
+    "plt.axis('square')\n",
+    "plt.ylim(0, 1)\n",
+    "plt.xlim(0, 1)\n",
+    "plt.plot([0, 1], [0, 1],color='black', linewidth=0.5)\n",
+    "legend = plot.legend(bbox_to_anchor= (1,1))\n",
+    "plt.savefig('.../2 clusters - residuals data- brains.png',dpi=300, bbox_inches='tight')\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "b93aefa2",
+   "metadata": {},
+   "source": [
+    "<font size=\"5\">Using K-means and Hierarchical clustering methods - 2-10 clusters:</font>"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "b982cf14",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "sex_disparities = []\n",
+    "cluster_sizes = []\n",
+    "clusters_num = []\n",
+    "dim_reduction_method = []"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "e618a2b2",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def clustering_2_10(df,number_of_females,method):   \n",
+    "    for k in range(2,11):\n",
+    "        kmeans = KMeans(n_clusters = k, random_state = 0, n_init=100, init='random')\n",
+    "        kmeans.fit(df)\n",
+    "        for cluster in range(k):\n",
+    "            cluster_size =  sum(kmeans.labels_==cluster)\n",
+    "            p = max(sum([kmeans.labels_[:number_of_females]==cluster][0])/cluster_size,\n",
+    "            sum([kmeans.labels_[number_of_females:]==cluster][0])/cluster_size)\n",
+    "            sex_disparities.append(p)\n",
+    "            cluster_sizes.append(cluster_size)\n",
+    "            clusters_num.append(str(k) + \" clusters\")\n",
+    "            dim_reduction_method.append(method)\n",
+    "    for k in range(2,11):\n",
+    "        hierarchical_cluster = AgglomerativeClustering(n_clusters=k, metric='euclidean', linkage='ward')\n",
+    "        labels_hierarchical_cluster = hierarchical_cluster.fit_predict(df)\n",
+    "        for cluster in range(k):\n",
+    "            cluster_size =  sum(labels_hierarchical_cluster==cluster)\n",
+    "            p = max(sum([labels_hierarchical_cluster[:number_of_females]==cluster][0])/cluster_size,\n",
+    "            sum([labels_hierarchical_cluster[number_of_females:]==cluster][0])/cluster_size)\n",
+    "            sex_disparities.append(p)\n",
+    "            cluster_sizes.append(cluster_size)\n",
+    "            clusters_num.append(str(k) + \" clusters\")\n",
+    "            dim_reduction_method.append(method)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "d31a6815",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "clustering_2_10(images_reduced_brains_res_3,number_of_females,\"Residuals PCA - 3\")\n",
+    "clustering_2_10(images_reduced_brains_res_12,number_of_females,\"Residuals PCA - 12\")\n",
+    "clustering_2_10(df_residuals_data_balanced_norm,number_of_females,\"Residuals\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "791b733b",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "colors=['cornflowerblue','red','limegreen','blue','orange','deeppink','aqua','black','grey']\n",
+    "i=0\n",
+    "\n",
+    "plot = sns.scatterplot(x=cluster_sizes, y=sex_disparities, hue=clusters_num, \n",
+    "                palette=colors, \n",
+    "               marker=\"$\\circ$\",s=60)\n",
+    "plt.ylim(0.5, 1)\n",
+    "plt.xlim(0, None)\n",
+    "legend = plot.legend(bbox_to_anchor= (1,1))\n",
+    "for text in legend.get_texts():\n",
+    "    text.set_color(colors[i])\n",
+    "    i+=1\n",
+    "\n",
+    "plt.savefig('.../2-10 clusters - residuals data- brains.png',dpi=300, bbox_inches='tight')\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "2fe11b16",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "plot = sns.scatterplot(x=cluster_sizes, y=sex_disparities, hue=dim_reduction_method)\n",
+    "plt.ylim(0.5, 1)\n",
+    "plt.xlim(0, None)\n",
+    "legend = plot.legend(bbox_to_anchor= (1,1))\n",
+    "plt.savefig('.../2-10 clusters - residuals data- brains - dim.png',dpi=300, bbox_inches='tight')\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "d40ee7ad",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "sex_disparities = []\n",
+    "cluster_sizes = []\n",
+    "clusters_num = []\n",
+    "dim_reduction_method = []\n",
+    "\n",
+    "clustering_2_10(images_reduced_brains_original_3,number_of_females,\"Original Values PCA - 3\")\n",
+    "clustering_2_10(images_reduced_brains_original_9,number_of_females,\"Original Values PCA - 9\")\n",
+    "clustering_2_10(df_original_data_balanced_norm,number_of_females,\"Original Values\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "30ab296b",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "colors=['cornflowerblue','red','limegreen','blue','orange','deeppink','aqua','black','grey']\n",
+    "i=0\n",
+    "\n",
+    "plot = sns.scatterplot(x=cluster_sizes, y=sex_disparities, hue=clusters_num, \n",
+    "                palette=colors, \n",
+    "               marker=\"$\\circ$\",s=60)\n",
+    "plt.ylim(0.5, 1)\n",
+    "plt.xlim(0, None)\n",
+    "legend = plot.legend(bbox_to_anchor= (1,1))\n",
+    "for text in legend.get_texts():\n",
+    "    text.set_color(colors[i])\n",
+    "    i+=1\n",
+    "plt.savefig('.../2-10 clusters - original data- brains.png',dpi=300, bbox_inches='tight')\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "264f577b",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "plot = sns.scatterplot(x=cluster_sizes, y=sex_disparities, hue=dim_reduction_method)\n",
+    "plt.ylim(0.5, 1)\n",
+    "plt.xlim(0, None)\n",
+    "legend = plot.legend(bbox_to_anchor= (1,1))\n",
+    "plt.savefig('.../2-10 clusters - original data- brains-dim.png',dpi=300, bbox_inches='tight')\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "34355b57",
+   "metadata": {},
+   "source": [
+    "<font size=\"5\">Anomaly Detection:</font>"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "40187164",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "outlier_females = []\n",
+    "outlier_males = []\n",
+    "k = []\n",
+    "thresholds = []\n",
+    "males_or_females_train =[]\n",
+    "dim_reduction_method = []\n",
+    "\n",
+    "def anomaly_detection(df,number_of_females,method):    \n",
+    "    for k in [30,35,40,45,50,55,60,65,70]:\n",
+    "        for percentile in [40,45,50,55,60,65,70,75]:\n",
+    "            males_train,males_test = train_test_split(df[:number_of_females,], test_size=0.5)\n",
+    "            females_train, females_test = train_test_split(df[number_of_females:,], test_size=0.5)\n",
+    "            # instantiate model males train\n",
+    "            nbrs = NearestNeighbors(n_neighbors = k)\n",
+    "             # fit model\n",
+    "            nbrs.fit(males_train)\n",
+    "            train_distances, indexes = nbrs.kneighbors(males_train)\n",
+    "            threshold = np.percentile(train_distances.mean(axis = 1), percentile)\n",
+    "\n",
+    "            m_distances, indexes = nbrs.kneighbors(males_test)\n",
+    "            outlier_males.append(sum(m_distances.mean(axis = 1) > threshold)/(males_test.shape[0]))\n",
+    "            f_distances, indexes = nbrs.kneighbors(females_test)\n",
+    "            outlier_females.append(sum(f_distances.mean(axis = 1) > threshold)/(females_test.shape[0]))\n",
+    "            thresholds.append(threshold)\n",
+    "            males_or_females_train.append(\"trained on males\")\n",
+    "            dim_reduction_method.append(method)\n",
+    "\n",
+    "            # instantiate model females train\n",
+    "            nbrs = NearestNeighbors(n_neighbors = k)\n",
+    "            # fit model\n",
+    "            nbrs.fit(females_train)\n",
+    "            train_distances, indexes = nbrs.kneighbors(females_train)\n",
+    "            threshold = np.percentile(train_distances.mean(axis = 1), percentile)\n",
+    "            m_distances, indexes = nbrs.kneighbors(males_test)\n",
+    "            outlier_males.append(sum(m_distances.mean(axis = 1) > threshold)/(males_test.shape[0]))\n",
+    "            f_distances, indexes = nbrs.kneighbors(females_test)\n",
+    "            outlier_females.append(sum(f_distances.mean(axis = 1) > threshold)/(females_test.shape[0]))\n",
+    "            thresholds.append(threshold)  \n",
+    "            males_or_females_train.append(\"trained on females\")\n",
+    "            dim_reduction_method.append(method)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "54eac1bb",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "np.random.seed(10)\n",
+    "anomaly_detection(images_reduced_brains_res_3,number_of_females,\"Residuals PCA - 3\")\n",
+    "anomaly_detection(images_reduced_brains_res_12,number_of_females,\"Residuals PCA - 12\")\n",
+    "anomaly_detection(df_residuals_data_balanced_norm,number_of_females,\"Residuals - Z scores\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "7052f7de",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "title = 'Brains - Residuals'\n",
+    "plot = sns.scatterplot(y = 1-np.array(outlier_females),\n",
+    "                       x = 1-np.array(outlier_males), hue=dim_reduction_method,\n",
+    "                         style=males_or_females_train, markers=[\"^\",\"o\"],s=25,alpha=0.8)\n",
+    "plot.set(ylabel=\"Ratio of females classified as 'normal'\", \n",
+    "         xlabel=\"Ratio of males classified as 'normal'\",\n",
+    "        title = title)\n",
+    "plt.axis('square')\n",
+    "plt.ylim(0, 1)\n",
+    "plt.xlim(0, 1)\n",
+    "plt.xticks([0, 0.5, 1])\n",
+    "plt.plot([0, 1], [0, 1],color='black', linewidth=0.5)\n",
+    "legend = plot.legend(bbox_to_anchor= (1,1))\n",
+    "fig  = legend.figure\n",
+    "fig.canvas.draw()\n",
+    "bbox  = legend.get_window_extent().transformed(fig.dpi_scale_trans.inverted())\n",
+    "fig.savefig('.../anomaly detection legend- '+title+'.png', dpi=600, bbox_inches=bbox)\n",
+    "legend.remove()\n",
+    "plt.savefig('.../anomaly detection plot- '+title+'.png',dpi=300)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "d0fa1a4d",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "outlier_females = []\n",
+    "outlier_males = []\n",
+    "k = []\n",
+    "thresholds = []\n",
+    "males_or_females_train =[]\n",
+    "dim_reduction_method = []\n",
+    "     \n",
+    "\n",
+    "np.random.seed(10)\n",
+    "anomaly_detection(images_reduced_brains_original_3,number_of_females,\"Original Values PCA - 3\")\n",
+    "anomaly_detection(images_reduced_brains_original_9,number_of_females,\"Original Values PCA - 9\")\n",
+    "anomaly_detection(df_original_data_balanced_norm,number_of_females,\"Original Values - Z scores\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "8b749c21",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "title = 'Brains - Original Values'\n",
+    "plot = sns.scatterplot(y = 1-np.array(outlier_females),\n",
+    "                       x = 1-np.array(outlier_males), hue=dim_reduction_method,\n",
+    "                         style=males_or_females_train, markers=[\"^\",\"o\"],s=25,alpha=0.8)\n",
+    "plot.set(ylabel=\"Ratio of females classified as 'normal'\", \n",
+    "         xlabel=\"Ratio of males classified as 'normal'\",\n",
+    "        title = title)\n",
+    "plt.axis('square')\n",
+    "plt.ylim(0, 1)\n",
+    "plt.xlim(0, 1)\n",
+    "plt.xticks([0, 0.5, 1])\n",
+    "plt.plot([0, 1], [0, 1],color='black', linewidth=0.5)\n",
+    "legend = plot.legend(bbox_to_anchor= (1,1))\n",
+    "fig  = legend.figure\n",
+    "fig.canvas.draw()\n",
+    "bbox  = legend.get_window_extent().transformed(fig.dpi_scale_trans.inverted())\n",
+    "fig.savefig('.../anomaly detection legend- '+title+'.png', dpi=600, bbox_inches=bbox)\n",
+    "legend.remove()\n",
+    "plt.savefig('.../anomaly detection plot- '+title+'.png',dpi=300)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "2023754f",
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3 (ipykernel)",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.10.9"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}
